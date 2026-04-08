@@ -107,7 +107,7 @@ export function PlaceDetailPanel({
   }
 
   function handleDeleteVisit(id: PlaceVisitId) {
-    deleteVisit.mutate(id)
+    deleteVisit.mutate({ id, placeId: place.id })
   }
 
   const visitList = visits.data ?? []
@@ -118,7 +118,7 @@ export function PlaceDetailPanel({
   })
 
   return (
-    <div className="absolute top-0 right-0 z-[1000] h-full w-[calc(100vw-3rem)] sm:w-80">
+    <div className="absolute top-0 right-0 z-detail h-full w-[calc(100vw-3rem)] sm:w-80">
       <div className="flex h-full max-h-full w-full flex-col border-l bg-background/90 backdrop-blur-md dark:border-white/[0.06]">
         {/* Header */}
         <div className="flex items-center gap-2 border-b px-3 py-2">
@@ -318,7 +318,8 @@ export function PlaceDetailPanel({
                         </div>
                         <button
                           onClick={() => handleDeleteVisit(visit.id)}
-                          className="shrink-0 text-muted-foreground/40 opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+                          aria-label="Delete visit"
+                          className="shrink-0 rounded text-muted-foreground/40 opacity-0 transition-opacity hover:text-red-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring group-hover:opacity-100"
                         >
                           <Trash2Icon size={10} />
                         </button>

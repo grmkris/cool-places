@@ -149,8 +149,20 @@ export function createAuth(props: {
         },
       }),
     ],
+    session: {
+      expiresIn: 60 * 60 * 24 * 7, // 7 days
+      cookieCache: { enabled: true, maxAge: 5 * 60 }, // 5 min
+    },
     advanced: {
       database: { generateId: false },
+      cookies: {
+        session_token: {
+          attributes: {
+            sameSite: "lax" as const,
+            secure: env.NODE_ENV === "production",
+          },
+        },
+      },
     },
   })
 }

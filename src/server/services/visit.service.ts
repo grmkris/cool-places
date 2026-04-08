@@ -25,7 +25,7 @@ function toVisitResponse(
 
 export type CreateVisitResult =
   | { ok: true; visit: PlaceVisitResponse }
-  | { ok: false; reason: "not_found" | "forbidden" }
+  | { ok: false; reason: "not_found" | "forbidden" | "duplicate" }
 
 export function createVisitService(props: { db: Database }) {
   const { db } = props
@@ -72,6 +72,7 @@ export function createVisitService(props: { db: Database }) {
 
   async function create(params: {
     userId: UserId
+    userName: string
     input: CreateVisitInput
   }): Promise<CreateVisitResult> {
     // Authorization: place must be readable by caller (owned or public).
@@ -96,20 +97,16 @@ export function createVisitService(props: { db: Database }) {
         visitedAt,
         notes: params.input.notes ?? null,
       })
+      .onConflictDoNothing()
       .returning()
 
-    if (!row) throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Failed to create visit" })
-
-    const userRow = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, params.userId),
-      columns: { name: true },
-    })
+    if (!row) return { ok: false as const, reason: "duplicate" as const }
 
     return {
       ok: true,
       visit: toVisitResponse({
         ...row,
-        visitorName: userRow?.name ?? "Unknown",
+        visitorName: params.userName,
       }),
     }
   }

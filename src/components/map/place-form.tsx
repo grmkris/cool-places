@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -213,11 +214,9 @@ export function PlaceForm({
       )}
 
       <label className="flex items-center gap-2 text-xs">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={isPublic}
-          onChange={(e) => setIsPublic(e.target.checked)}
-          className="size-3.5"
+          onCheckedChange={(checked) => setIsPublic(checked === true)}
         />
         <span>Make this place public (other users can see and visit it)</span>
       </label>

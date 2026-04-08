@@ -27,7 +27,8 @@ export function UserControls() {
       {isSignedIn && user ? (
         <button
           onClick={() => setProfileOpen(true)}
-          className="rounded-full ring-2 ring-background transition-opacity hover:opacity-80"
+          aria-label="Open profile"
+          className="rounded-full ring-2 ring-background transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-ring"
         >
           <Avatar size="default">
             {user.image && <AvatarImage src={user.image} alt={displayName} />}

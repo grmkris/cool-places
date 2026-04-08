@@ -6,7 +6,7 @@ import {
   listPlacesInputSchema,
   updatePlaceInputSchema,
 } from "@/server/db/schema/place/place.zod"
-import { authedProcedure } from "../api"
+import { authedProcedure, writeProcedure } from "../api"
 
 export const placeRouter = {
   list: authedProcedure
@@ -30,11 +30,11 @@ export const placeRouter = {
       return place
     }),
 
-  create: authedProcedure
+  create: writeProcedure
     .input(createPlaceInputSchema)
     .handler(async ({ input, context }) => {
       context.log.set({ procedure: "place.create", userId: context.userId })
-      return context.placeService.create({ userId: context.userId, input })
+      return context.placeService.create({ userId: context.userId, userName: context.userName, input })
     }),
 
   update: authedProcedure

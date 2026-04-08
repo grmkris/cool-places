@@ -11,6 +11,7 @@ import { appRouter } from "./api/router"
 import { createAuth } from "./auth"
 import { createPlaceService } from "./services/place.service"
 import { createVisitService } from "./services/visit.service"
+import { createRateLimiter } from "./rate-limit"
 import { env } from "@/env"
 import { UserId } from "@/lib/typeid"
 import type { Database } from "./db/db"
@@ -64,6 +65,20 @@ export function createApi(props: { db: Database }) {
   })
 
   app.get("/health", (c) => c.json({ status: "ok" }))
+
+  // Rate limit SIWE auth endpoints — 10 per IP per minute
+  const authLimiter = createRateLimiter({ windowMs: 60_000, max: 10 })
+  app.use("/auth/siwe/*", async (c, next) => {
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim()
+      ?? c.req.header("x-real-ip")
+      ?? "unknown"
+    const { ok, retryAfterMs } = authLimiter.check(ip)
+    if (!ok) {
+      c.header("Retry-After", String(Math.ceil(retryAfterMs / 1000)))
+      return c.json({ message: "Too many requests" }, 429)
+    }
+    return next()
+  })
 
   // Better Auth handles /api/auth/*
   app.all("/auth/*", async (c) => auth.handler(c.req.raw))

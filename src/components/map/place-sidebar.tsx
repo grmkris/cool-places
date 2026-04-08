@@ -2,6 +2,7 @@
 
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -41,8 +42,10 @@ function PlaceListItem({
 }) {
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={cn(
-        "animate-in fade-in slide-in-from-left-1 cursor-pointer border-b border-l-2 border-border/50 px-3 py-2.5 transition-colors hover:bg-muted/50",
+        "animate-in fade-in slide-in-from-left-1 cursor-pointer border-b border-l-2 border-border/50 px-3 py-2.5 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
         place.visitCount > 0
           ? "border-l-emerald-500"
           : place.isPublic
@@ -57,6 +60,13 @@ function PlaceListItem({
       onClick={() => {
         onSelect(place.id)
         onCollapseMobile()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onSelect(place.id)
+          onCollapseMobile()
+        }
       }}
     >
       <div className="mb-1 flex items-center gap-1.5">
@@ -127,7 +137,9 @@ function RecentVisitsTab({
         return (
           <div
             key={visit.id}
-            className="animate-in fade-in slide-in-from-left-1 cursor-pointer border-b border-l-2 border-l-emerald-500 border-border/50 px-3 py-2.5 transition-colors hover:bg-muted/50"
+            role="button"
+            tabIndex={0}
+            className="animate-in fade-in slide-in-from-left-1 cursor-pointer border-b border-l-2 border-l-emerald-500 border-border/50 px-3 py-2.5 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             style={{
               animationDelay: `${index * 30}ms`,
               animationFillMode: "backwards",
@@ -135,6 +147,13 @@ function RecentVisitsTab({
             onClick={() => {
               onSelectPlace(visit.placeId)
               onCollapseMobile()
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault()
+                onSelectPlace(visit.placeId)
+                onCollapseMobile()
+              }
             }}
           >
             <div className="mb-1 flex items-center gap-1.5">
@@ -202,7 +221,7 @@ export function PlaceSidebar({
   }
 
   return (
-    <div className="absolute top-0 left-0 z-[999] h-full">
+    <div className="absolute top-0 left-0 z-sidebar h-full">
       {collapsed ? (
         <button
           onClick={() => onCollapsedChange(false)}
@@ -287,11 +306,9 @@ export function PlaceSidebar({
                 </Tabs>
 
                 <label className="flex items-center gap-1.5 text-[11px]">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={showPublic}
-                    onChange={onToggleShowPublic}
-                    className="size-3.5"
+                    onCheckedChange={onToggleShowPublic}
                   />
                   <span>Include public places from others</span>
                 </label>

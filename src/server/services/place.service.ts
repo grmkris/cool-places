@@ -193,6 +193,7 @@ export function createPlaceService(props: { db: Database }) {
 
   async function create(params: {
     userId: UserId
+    userName: string
     input: CreatePlaceInput
   }): Promise<CoolPlaceResponse> {
     const [row] = await db
@@ -213,15 +214,10 @@ export function createPlaceService(props: { db: Database }) {
 
     if (!row) throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Failed to create place" })
 
-    const userRow = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, params.userId),
-      columns: { name: true },
-    })
-
     return toCoolPlace(
       {
         ...row,
-        creatorName: userRow?.name ?? "Unknown",
+        creatorName: params.userName,
         visitCount: 0,
         lastVisitedAt: null,
       },

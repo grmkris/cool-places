@@ -36,9 +36,7 @@ const { useSession: _useSession, signOut } = authClient
 function useSession() {
   const session = _useSession()
   return session as typeof session & {
-    data: typeof session.data & {
-      user: SessionUser
-    } | null
+    data: (typeof session.data & { user: SessionUser }) | null
   }
 }
 

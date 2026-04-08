@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/server"
 import { z } from "zod"
 import { CoolPlaceId, PlaceVisitId } from "@/lib/typeid"
 import { createVisitInputSchema } from "@/server/db/schema/place/place.zod"
-import { authedProcedure } from "../api"
+import { authedProcedure, writeProcedure } from "../api"
 
 export const visitRouter = {
   listForPlace: authedProcedure
@@ -15,14 +15,19 @@ export const visitRouter = {
       })
     }),
 
-  create: authedProcedure
+  create: writeProcedure
     .input(createVisitInputSchema)
     .handler(async ({ input, context }) => {
       context.log.set({ procedure: "visit.create", placeId: input.placeId })
-      const result = await context.visitService.create({ userId: context.userId, input })
+      const result = await context.visitService.create({ userId: context.userId, userName: context.userName, input })
       if (!result.ok) {
         if (result.reason === "not_found") {
           throw new ORPCError("NOT_FOUND", { message: "Place not found" })
+        }
+        if (result.reason === "duplicate") {
+          throw new ORPCError("CONFLICT", {
+            message: "Visit already recorded for this time",
+          })
         }
         throw new ORPCError("FORBIDDEN", {
           message: "Not allowed to visit this place",

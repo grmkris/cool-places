@@ -82,8 +82,8 @@ export const verification = pgTable(
     identifier: text("identifier").notNull(),
     value: text("value").notNull(),
     expiresAt: createTimestampField("expires_at").notNull(),
-    createdAt: createTimestampField("created_at").$defaultFn(() => new Date()),
-    updatedAt: createTimestampField("updated_at").$defaultFn(() => new Date()),
+    createdAt: createTimestampField("created_at").defaultNow().notNull(),
+    updatedAt: createTimestampField("updated_at").defaultNow().notNull(),
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)]
 )

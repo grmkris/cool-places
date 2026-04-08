@@ -89,7 +89,8 @@ export function ProfileSheet({
                   </span>
                   <button
                     onClick={handleCopyAddress}
-                    className="shrink-0 text-muted-foreground hover:text-foreground"
+                    aria-label="Copy wallet address"
+                    className="shrink-0 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:rounded-sm"
                   >
                     <CopyIcon size={10} />
                   </button>
@@ -109,7 +110,7 @@ export function ProfileSheet({
             </h3>
             <button
               onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              className="flex w-full items-center justify-between rounded-lg border px-3 py-2.5 transition-colors hover:bg-muted/50"
+              className="flex w-full items-center justify-between rounded-lg border px-3 py-2.5 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className="flex items-center gap-2">
                 {resolvedTheme === "dark" ? (

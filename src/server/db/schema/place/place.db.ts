@@ -6,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core"
 import {
   type CoolPlaceId,
@@ -43,6 +44,8 @@ export const coolPlace = pgTable(
     index("coolPlace_userId_idx").on(table.userId),
     index("coolPlace_isPublic_idx").on(table.isPublic),
     index("coolPlace_userId_createdAt_idx").on(table.userId, table.createdAt),
+    index("coolPlace_tags_gin_idx").using("gin", table.tags),
+    index("coolPlace_public_created_idx").on(table.isPublic, table.createdAt),
   ]
 )
 
@@ -73,6 +76,11 @@ export const placeVisit = pgTable(
     index("placeVisit_placeId_idx").on(table.placeId),
     index("placeVisit_userId_idx").on(table.userId),
     index("placeVisit_userId_visitedAt_idx").on(
+      table.userId,
+      table.visitedAt
+    ),
+    uniqueIndex("placeVisit_unique_visit_idx").on(
+      table.placeId,
       table.userId,
       table.visitedAt
     ),

@@ -188,7 +188,7 @@ export function PlaceMap() {
 
   return (
     <div className="relative flex h-svh w-svw flex-col">
-      <div className="absolute top-2 right-2 z-[1001]">
+      <div className="absolute top-2 right-2 z-controls">
         <UserControls />
       </div>
 
@@ -247,7 +247,7 @@ export function PlaceMap() {
       </Map>
 
       {/* Add place FAB */}
-      <div className={cn("absolute z-[1001] bottom-44", fabRight)}>
+      <div className={cn("absolute z-controls bottom-44", fabRight)}>
         <Tooltip>
           <TooltipTrigger
             render={
@@ -271,7 +271,7 @@ export function PlaceMap() {
       </div>
 
       {addMode && (
-        <div className="fixed inset-x-0 bottom-0 z-[1001] flex items-center justify-between bg-foreground px-4 py-3 text-background sm:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-controls flex items-center justify-between bg-foreground px-4 py-3 text-background sm:hidden">
           <span className="text-xs font-medium">Tap map to drop pin</span>
           <Button
             variant="ghost"
