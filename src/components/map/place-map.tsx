@@ -276,7 +276,7 @@ export function PlaceMap() {
         minZoom={2}
         maxZoom={18}
         className={cn(
-          "h-full w-full flex-1",
+          "z-0 h-full w-full flex-1",
           pinMode && "cursor-crosshair"
         )}
       >
