@@ -1471,6 +1471,16 @@ function MapClusterLayer<
   return null;
 }
 
+function MapControlContainer({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return <div className={cn("absolute z-10", className)}>{children}</div>;
+}
+
 export {
   Map,
   useMap,
@@ -1481,6 +1491,7 @@ export {
   MarkerLabel,
   MapPopup,
   MapControls,
+  MapControlContainer,
   MapRoute,
   MapClusterLayer,
 };

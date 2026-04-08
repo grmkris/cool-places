@@ -1,4 +1,5 @@
 import { and, desc, eq } from "drizzle-orm"
+import { ORPCError } from "@orpc/server"
 import type { CoolPlaceId, PlaceVisitId, UserId } from "@/lib/typeid"
 import type { Database } from "../db/db"
 import { coolPlace, placeVisit } from "../db/schema/place/place.db"
@@ -97,7 +98,7 @@ export function createVisitService(props: { db: Database }) {
       })
       .returning()
 
-    if (!row) throw new Error("insert into place_visit returned no rows")
+    if (!row) throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Failed to create visit" })
 
     const userRow = await db.query.user.findFirst({
       where: (u, { eq }) => eq(u.id, params.userId),

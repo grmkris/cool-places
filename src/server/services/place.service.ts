@@ -9,6 +9,7 @@ import {
   sql,
   type SQL,
 } from "drizzle-orm"
+import { ORPCError } from "@orpc/server"
 import type { CoolPlaceId, UserId } from "@/lib/typeid"
 import type { Database } from "../db/db"
 import { coolPlace, placeVisit } from "../db/schema/place/place.db"
@@ -210,7 +211,7 @@ export function createPlaceService(props: { db: Database }) {
       })
       .returning()
 
-    if (!row) throw new Error("insert into cool_place returned no rows")
+    if (!row) throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Failed to create place" })
 
     const userRow = await db.query.user.findFirst({
       where: (u, { eq }) => eq(u.id, params.userId),
@@ -234,15 +235,7 @@ export function createPlaceService(props: { db: Database }) {
   }): Promise<CoolPlaceResponse | null> {
     const { id, ...patch } = params.input
 
-    // Authorization: only owner can update
-    const existing = await db.query.coolPlace.findFirst({
-      where: (p, { eq, and }) =>
-        and(eq(p.id, id), eq(p.userId, params.userId)),
-      columns: { id: true },
-    })
-    if (!existing) return null
-
-    await db
+    const result = await db
       .update(coolPlace)
       .set({
         ...(patch.title !== undefined ? { title: patch.title } : {}),
@@ -261,8 +254,10 @@ export function createPlaceService(props: { db: Database }) {
         ...(patch.tags !== undefined ? { tags: patch.tags } : {}),
         ...(patch.isPublic !== undefined ? { isPublic: patch.isPublic } : {}),
       })
-      .where(eq(coolPlace.id, id))
+      .where(and(eq(coolPlace.id, id), eq(coolPlace.userId, params.userId)))
+      .returning({ id: coolPlace.id })
 
+    if (result.length === 0) return null
     return getById({ id, callerUserId: params.userId })
   }
 
@@ -280,12 +275,14 @@ export function createPlaceService(props: { db: Database }) {
     userId: UserId
     isPublic: boolean
   }) {
-    await db
+    const result = await db
       .update(coolPlace)
       .set({ isPublic: params.isPublic })
       .where(
         and(eq(coolPlace.id, params.id), eq(coolPlace.userId, params.userId))
       )
+      .returning({ id: coolPlace.id })
+    if (result.length === 0) return null
     return getById({ id: params.id, callerUserId: params.userId })
   }
 

@@ -17,11 +17,13 @@ import type { CoolPlaceId } from "@/lib/typeid"
 import type { VisitedFilter } from "@/hooks/use-place-filters"
 import { useMyRecentVisits } from "@/hooks/use-my-recent-visits"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 import {
   CheckCircle2Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ClockIcon,
+  DownloadIcon,
   EyeIcon,
   MapPinIcon,
   SearchIcon,
@@ -217,6 +219,20 @@ export function PlaceSidebar({
           {/* Header */}
           <div className="flex items-center gap-2 border-b px-3 py-2">
             <h1 className="flex-1 text-sm font-semibold">Cool Places</h1>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Link
+                    href="/import"
+                    className="rounded p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    aria-label="Import places"
+                  />
+                }
+              >
+                <DownloadIcon size={14} />
+              </TooltipTrigger>
+              <TooltipContent>Import from Pinterest / TikTok</TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger
                 render={

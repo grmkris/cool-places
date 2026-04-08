@@ -9,14 +9,14 @@ export const env = createEnv({
     APP_URL: z.string().url(),
     NODE_ENV: z.enum(["development", "production", "test"]),
     BLOB_READ_WRITE_TOKEN: z.string().min(1),
-    // Pinterest OAuth (developers.pinterest.com)
-    PINTEREST_CLIENT_ID: z.string().min(1),
-    PINTEREST_CLIENT_SECRET: z.string().min(1),
-    // AI extraction via Vercel AI Gateway
-    AI_GATEWAY_API_KEY: z.string().min(1),
+    // Pinterest OAuth (developers.pinterest.com) — optional for local dev without Pinterest
+    PINTEREST_CLIENT_ID: z.string().min(1).optional(),
+    PINTEREST_CLIENT_SECRET: z.string().min(1).optional(),
+    // AI extraction via Vercel AI Gateway (optional until review queue is wired)
+    AI_GATEWAY_API_KEY: z.string().min(1).optional(),
     EXTRACTION_MODEL: z.string().default("openai/gpt-4o-mini"),
-    // Geocoding
-    MAPBOX_TOKEN: z.string().min(1),
+    // Geocoding (optional until review queue is wired)
+    MAPBOX_TOKEN: z.string().min(1).optional(),
     GEOCODER_PROVIDER: z.enum(["mapbox", "mock"]).default("mapbox"),
   },
   client: {

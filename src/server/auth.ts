@@ -1,10 +1,11 @@
 import { betterAuth } from "better-auth"
-import { siwe } from "better-auth/plugins"
+import { siwe, genericOAuth } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { generateRandomString } from "better-auth/crypto"
 import { createPublicClient, http } from "viem"
 import { verifyMessage } from "viem/actions"
 import { mainnet, base, baseSepolia } from "viem/chains"
+import { SiweMessage } from "siwe"
 import { DB_SCHEMA, type Database } from "./db/db"
 import { fetchReownIdentity } from "@/lib/reown-identity"
 import { env } from "@/env"
@@ -83,7 +84,7 @@ export function createAuth(props: {
         getNonce: async () => {
           return generateRandomString(32, "a-z", "A-Z", "0-9")
         },
-        verifyMessage: async ({ message, signature, address, chainId }) => {
+        verifyMessage: async ({ message, signature, address, chainId, cacao }) => {
           // Sanity check: hex must be even-length. Catches transcription bugs.
           if (
             !signature.startsWith("0x") ||
@@ -93,6 +94,25 @@ export function createAuth(props: {
               length: signature.length,
             })
             return false
+          }
+          // Verify the nonce in the SIWE message matches the one better-auth
+          // stored (passed via cacao.p.nonce). This prevents replay attacks —
+          // even if the cryptographic signature is valid, an old message with
+          // a consumed/wrong nonce is rejected.
+          if (cacao?.p.nonce) {
+            try {
+              const parsed = new SiweMessage(message)
+              if (parsed.nonce !== cacao.p.nonce) {
+                console.error("[siwe] nonce mismatch", {
+                  expected: cacao.p.nonce,
+                  got: parsed.nonce,
+                })
+                return false
+              }
+            } catch {
+              console.error("[siwe] failed to parse SIWE message for nonce check")
+              return false
+            }
           }
           // Use viem's smart-wallet-aware verifyMessage action so that
           // ERC-1271 / ERC-6492 signatures from embedded smart wallets
@@ -127,6 +147,63 @@ export function createAuth(props: {
             avatar: avatar ?? "",
           }
         },
+      }),
+      genericOAuth({
+        config: [
+          {
+            // Pinterest API v5 OAuth — used for linking only, never for sign-in.
+            // Users authenticate via SIWE first, then link Pinterest via the
+            // /api/auth/oauth2/link endpoint to grant access to their pins.
+            providerId: "pinterest",
+            clientId: env.PINTEREST_CLIENT_ID ?? "",
+            clientSecret: env.PINTEREST_CLIENT_SECRET ?? "",
+            authorizationUrl: "https://www.pinterest.com/oauth/",
+            tokenUrl: "https://api.pinterest.com/v5/oauth/token",
+            scopes: [
+              "user_accounts:read",
+              "boards:read",
+              "pins:read",
+              "boards:read_secret",
+              "pins:read_secret",
+            ],
+            pkce: true,
+            // Pinterest's token endpoint expects HTTP Basic auth with the
+            // client_id:client_secret pair (not form-encoded credentials).
+            authentication: "basic",
+            // Block standalone "Sign in with Pinterest" — this provider exists
+            // only to link to an already-authenticated SIWE user.
+            disableImplicitSignUp: true,
+            disableSignUp: true,
+            // Pinterest doesn't return an email at the user_accounts:read
+            // scope. Map only what we need; linking works via the active
+            // session's userId, not by email matching.
+            getUserInfo: async (tokens) => {
+              const res = await fetch(
+                "https://api.pinterest.com/v5/user_account",
+                {
+                  headers: {
+                    Authorization: `Bearer ${tokens.accessToken}`,
+                  },
+                }
+              )
+              if (!res.ok) {
+                throw new Error(
+                  `pinterest /v5/user_account ${res.status}: ${await res.text()}`
+                )
+              }
+              const body = (await res.json()) as {
+                username: string
+                id?: string
+              }
+              return {
+                id: body.id ?? body.username,
+                name: body.username,
+                email: null,
+                emailVerified: false,
+              }
+            },
+          },
+        ],
       }),
     ],
     advanced: {

@@ -11,6 +11,12 @@ import { appRouter } from "./api/router"
 import { createAuth } from "./auth"
 import { createPlaceService } from "./services/place.service"
 import { createVisitService } from "./services/visit.service"
+import { createPinterestService } from "./services/pinterest.service"
+import { createTikTokService } from "./services/tiktok.service"
+import { createExtractionService } from "./services/extraction.service"
+import { createLlmProvider } from "./services/extraction/llm"
+import { createGeocoder } from "./services/extraction/geocoder"
+import { createImportService } from "./services/import.service"
 import { env } from "@/env"
 import { UserId } from "@/lib/typeid"
 import type { Database } from "./db/db"
@@ -21,6 +27,19 @@ export function createApi(props: { db: Database }) {
   // --- Services ---
   const placeService = createPlaceService({ db })
   const visitService = createVisitService({ db })
+  const pinterestService = createPinterestService({ db })
+  const tiktokService = createTikTokService({ db })
+  const llm = createLlmProvider({ modelId: env.EXTRACTION_MODEL })
+  const geocoder = createGeocoder({
+    provider: env.GEOCODER_PROVIDER,
+    token: env.MAPBOX_TOKEN ?? "",
+  })
+  const extractionService = createExtractionService({ db, llm, geocoder })
+  const importService = createImportService({
+    db,
+    placeService,
+    extractionService,
+  })
 
   // --- Auth ---
   const auth = createAuth({
@@ -33,18 +52,32 @@ export function createApi(props: { db: Database }) {
   // --- Hono app with evlog wide events ---
   const app = new Hono<EvlogVariables>().basePath("/api")
 
-  app.use("*", cors())
+  app.use(
+    "*",
+    cors({
+      origin: env.AUTH_DOMAIN === "localhost"
+        ? ["http://localhost:3000"]
+        : [env.APP_URL],
+      credentials: true,
+    })
+  )
   app.use("*", evlog({ exclude: ["/api/health"] }))
 
-  // Structured error handler
+  // Structured error handler — only expose details for known oRPC/API errors;
+  // unknown errors get a generic message so internals don't leak to the client.
   app.onError((error, c) => {
     c.get("log").error(error)
     const parsed = parseError(error)
     const status = (parsed.status >= 100 && parsed.status < 600
       ? parsed.status
       : 500) as ContentfulStatusCode
+    const isKnown = status < 500
     return c.json(
-      { message: parsed.message, why: parsed.why, fix: parsed.fix },
+      {
+        message: isKnown ? parsed.message : "Internal server error",
+        ...(isKnown && parsed.why ? { why: parsed.why } : {}),
+        ...(isKnown && parsed.fix ? { fix: parsed.fix } : {}),
+      },
       status
     )
   })
@@ -92,6 +125,10 @@ export function createApi(props: { db: Database }) {
       auth,
       placeService,
       visitService,
+      pinterestService,
+      tiktokService,
+      extractionService,
+      importService,
       session,
     })
 
