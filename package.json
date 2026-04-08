@@ -30,6 +30,7 @@
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "evlog": "^2.10.0",
+    "framer-motion": "^12.38.0",
     "hono": "^4.12.10",
     "lucide-react": "^1.7.0",
     "maplibre-gl": "^5.22.0",

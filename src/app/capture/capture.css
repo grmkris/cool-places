@@ -1,0 +1,92 @@
+/* Perforated stamp edge — repeating circles cut into the border */
+.stamp-edge {
+  --stamp-color: #f5f0e8;
+  --stamp-radius: 5px;
+  --stamp-gap: 3px;
+  --stamp-size: calc(var(--stamp-radius) * 2 + var(--stamp-gap));
+  background: var(--stamp-color);
+  mask-image:
+    /* Top edge */
+    radial-gradient(circle at var(--stamp-radius) 0, transparent var(--stamp-radius), black calc(var(--stamp-radius) + 0.5px)),
+    /* Bottom edge */
+    radial-gradient(circle at var(--stamp-radius) var(--stamp-size), transparent var(--stamp-radius), black calc(var(--stamp-radius) + 0.5px)),
+    /* Left edge */
+    radial-gradient(circle at 0 var(--stamp-radius), transparent var(--stamp-radius), black calc(var(--stamp-radius) + 0.5px)),
+    /* Right edge */
+    radial-gradient(circle at var(--stamp-size) var(--stamp-radius), transparent var(--stamp-radius), black calc(var(--stamp-radius) + 0.5px));
+  mask-size:
+    var(--stamp-size) 100%,
+    var(--stamp-size) 100%,
+    100% var(--stamp-size),
+    100% var(--stamp-size);
+  mask-position:
+    top center,
+    bottom center,
+    left center,
+    right center;
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+  mask-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+}
+
+/* Film grain overlay — SVG noise filter */
+.film-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+}
+
+.film-grain svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Camera vignette overlay */
+.vignette {
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    rgba(0, 0, 0, 0.5) 100%
+  );
+}
+
+/* Linen paper texture via repeating background */
+.linen-texture {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.015) 1px,
+      rgba(0, 0, 0, 0.015) 2px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.015) 1px,
+      rgba(0, 0, 0, 0.015) 2px
+    );
+}
+
+/* Shutter flash */
+@keyframes shutter-flash {
+  0% { opacity: 0; }
+  20% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+.shutter-flash {
+  animation: shutter-flash 250ms ease-out forwards;
+}
+
+/* Subtle grid background for result state */
+.result-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
