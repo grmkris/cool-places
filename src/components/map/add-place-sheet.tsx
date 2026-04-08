@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import {
   Sheet,
   SheetContent,
@@ -9,13 +9,12 @@ import {
 } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { CameraIcon, MapPinIcon } from "lucide-react"
+import { CameraIcon, CameraOffIcon, MapPinIcon, LoaderIcon } from "lucide-react"
 import { useCreatePlace } from "@/hooks/use-create-place"
+import { useCameraUpload } from "@/hooks/use-camera-upload"
 import { PlaceForm } from "./place-form"
 
 type AddMode = "idle" | "capture" | "pin-waiting" | "form"
-
-const MOCK_CAPTURE_IMAGE = "https://picsum.photos/seed/capture1/800/1000"
 
 export function AddPlaceSheet({
   open,
@@ -39,11 +38,35 @@ export function AddPlaceSheet({
   )
   const createPlace = useCreatePlace()
 
-  const handleCapture = useCallback(() => {
-    // Mock capture — in real app this would use getUserMedia
-    setCapturedImage(MOCK_CAPTURE_IMAGE)
-    setMode("form")
-  }, [])
+  const {
+    videoRef,
+    status: cameraStatus,
+    error: cameraError,
+    start: startCamera,
+    stop: stopCamera,
+    captureAndUpload,
+    isUploading,
+  } = useCameraUpload({ width: 800, height: 1000 })
+
+  // Start/stop camera based on sheet visibility and tab
+  useEffect(() => {
+    if (open && activeTab === "capture" && !capturedImage && mode === "idle") {
+      startCamera()
+    } else {
+      stopCamera()
+    }
+    return () => stopCamera()
+  }, [open, activeTab, capturedImage, mode]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCapture = useCallback(async () => {
+    if (isUploading) return
+    const url = await captureAndUpload()
+    if (url) {
+      setCapturedImage(url)
+      stopCamera()
+      setMode("form")
+    }
+  }, [captureAndUpload, isUploading, stopCamera])
 
   const handlePinMode = useCallback(() => {
     onRequestPinMode()
@@ -52,13 +75,14 @@ export function AddPlaceSheet({
 
   const handleClose = useCallback(() => {
     onOpenChange(false)
+    stopCamera()
     // Reset after close animation
     setTimeout(() => {
       setMode("idle")
       setCapturedImage(null)
       setActiveTab("capture")
     }, 300)
-  }, [onOpenChange])
+  }, [onOpenChange, stopCamera])
 
   // When coordinates arrive (from map click), switch to form mode
   const hasCoords = coordinates !== null
@@ -139,13 +163,45 @@ export function AddPlaceSheet({
               </TabsList>
 
               <TabsContent value="capture" className="mt-0">
-                {/* Mock camera viewfinder */}
+                {/* Camera viewfinder */}
                 <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-neutral-900">
-                  <img
-                    src={MOCK_CAPTURE_IMAGE}
-                    alt="Camera preview"
-                    className="h-full w-full object-cover opacity-90"
-                  />
+                  {cameraStatus === "active" && (
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="h-full w-full object-cover opacity-90"
+                    />
+                  )}
+
+                  {cameraStatus === "requesting" && (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <LoaderIcon size={20} className="animate-spin text-white/40" />
+                    </div>
+                  )}
+
+                  {(cameraStatus === "denied" || cameraStatus === "error") && (
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-4">
+                      <CameraOffIcon size={24} className="text-white/30" />
+                      <p className="text-center text-xs text-white/50">
+                        {cameraError ?? "Camera unavailable"}
+                      </p>
+                      <button
+                        onClick={() => startCamera()}
+                        className="rounded-md border border-white/10 px-3 py-1.5 text-[10px] text-white/60 transition-colors hover:border-white/20"
+                      >
+                        Try again
+                      </button>
+                    </div>
+                  )}
+
+                  {cameraStatus === "idle" && (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <CameraIcon size={24} className="text-white/20" />
+                    </div>
+                  )}
+
                   {/* Vignette */}
                   <div
                     className="pointer-events-none absolute inset-0"
@@ -167,14 +223,21 @@ export function AddPlaceSheet({
                 <div className="flex justify-center py-4">
                   <button
                     onClick={handleCapture}
-                    className="relative flex h-14 w-14 items-center justify-center rounded-full"
+                    disabled={cameraStatus !== "active" || isUploading}
+                    className="relative flex h-14 w-14 items-center justify-center rounded-full disabled:opacity-40"
                     aria-label="Take photo"
                   >
-                    <div
-                      className="absolute inset-0 rounded-full border-[2.5px]"
-                      style={{ borderColor: "#c8956c" }}
-                    />
-                    <div className="h-11 w-11 rounded-full bg-white transition-transform active:scale-90" />
+                    {isUploading ? (
+                      <LoaderIcon size={20} className="animate-spin text-white/60" />
+                    ) : (
+                      <>
+                        <div
+                          className="absolute inset-0 rounded-full border-[2.5px]"
+                          style={{ borderColor: "#c8956c" }}
+                        />
+                        <div className="h-11 w-11 rounded-full bg-white transition-transform active:scale-90" />
+                      </>
+                    )}
                   </button>
                 </div>
               </TabsContent>

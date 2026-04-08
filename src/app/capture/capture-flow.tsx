@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -9,14 +9,15 @@ import {
   ZapIcon,
   SwitchCameraIcon,
   CheckIcon,
+  CameraOffIcon,
+  LoaderIcon,
 } from "lucide-react"
-import { toast } from "sonner"
+import { useCameraUpload } from "@/hooks/use-camera-upload"
 import { StampCard } from "./stamp-card"
 import "./capture.css"
 
 type CaptureState = "idle" | "capturing" | "result"
 
-const MOCK_PREVIEW = "https://picsum.photos/seed/tallinn42/800/1200"
 const MOCK_PREVIOUS = [
   "https://picsum.photos/seed/stamp1/400/500",
   "https://picsum.photos/seed/stamp2/400/500",
@@ -34,24 +35,51 @@ export function CaptureFlow({
   const router = useRouter()
   const [state, setState] = useState<CaptureState>("idle")
   const [showFlash, setShowFlash] = useState(false)
+  const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null)
 
-  const handleCapture = useCallback(() => {
-    if (state !== "idle") return
+  const {
+    videoRef,
+    status: cameraStatus,
+    error: cameraError,
+    start: startCamera,
+    stop: stopCamera,
+    captureAndUpload,
+    isUploading,
+    switchCamera,
+  } = useCameraUpload({ width: 800, height: 1200 })
+
+  useEffect(() => {
+    startCamera()
+    return () => stopCamera()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCapture = useCallback(async () => {
+    if (state !== "idle" || isUploading) return
     setState("capturing")
     setShowFlash(true)
 
     setTimeout(() => setShowFlash(false), 250)
-    setTimeout(() => setState("result"), 400)
-  }, [state])
+
+    const url = await captureAndUpload()
+    if (url) {
+      setCapturedImageUrl(url)
+      stopCamera()
+      setState("result")
+    } else {
+      setState("idle")
+    }
+  }, [state, isUploading, captureAndUpload, stopCamera])
 
   const handleRetake = useCallback(() => {
+    setCapturedImageUrl(null)
     setState("idle")
-  }, [])
+    startCamera()
+  }, [startCamera])
 
   const handleUse = useCallback(() => {
-    // Navigate back to map with add-place sheet pre-opened and image pre-filled
-    router.push(`/?addPlace=true&image=${encodeURIComponent(MOCK_PREVIEW)}`)
-  }, [router])
+    if (!capturedImageUrl) return
+    router.push(`/?addPlace=true&image=${encodeURIComponent(capturedImageUrl)}`)
+  }, [router, capturedImageUrl])
 
   const handleBack = useCallback(() => {
     router.push("/")
@@ -109,12 +137,38 @@ export function CaptureFlow({
             </div>
 
             {/* Camera preview */}
-            <div className="relative mx-3 flex-1 overflow-hidden rounded-2xl">
-              <img
-                src={MOCK_PREVIEW}
-                alt="Camera preview"
-                className="h-full w-full object-cover"
-              />
+            <div className="relative mx-3 flex-1 overflow-hidden rounded-2xl bg-neutral-900">
+              {cameraStatus === "active" && (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="h-full w-full object-cover"
+                />
+              )}
+
+              {cameraStatus === "requesting" && (
+                <div className="flex h-full w-full items-center justify-center">
+                  <LoaderIcon size={24} className="animate-spin text-white/40" />
+                </div>
+              )}
+
+              {(cameraStatus === "denied" || cameraStatus === "error") && (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-6">
+                  <CameraOffIcon size={32} className="text-white/30" />
+                  <p className="text-center text-sm text-white/50">
+                    {cameraError ?? "Camera unavailable"}
+                  </p>
+                  <button
+                    onClick={() => startCamera()}
+                    className="rounded-lg border border-white/10 px-4 py-2 text-xs text-white/60 transition-colors hover:border-white/20 hover:text-white/80"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
+
               {/* Vignette */}
               <div className="vignette pointer-events-none absolute inset-0" />
 
@@ -147,20 +201,28 @@ export function CaptureFlow({
               <motion.button
                 whileTap={{ scale: 0.92 }}
                 onClick={handleCapture}
-                className="relative flex h-[72px] w-[72px] items-center justify-center rounded-full"
+                disabled={cameraStatus !== "active" || isUploading}
+                className="relative flex h-[72px] w-[72px] items-center justify-center rounded-full disabled:opacity-40"
                 aria-label="Capture photo"
               >
-                {/* Outer ring */}
-                <div
-                  className="absolute inset-0 rounded-full border-[3px]"
-                  style={{ borderColor: "#c8956c" }}
-                />
-                {/* Inner circle */}
-                <div className="h-[58px] w-[58px] rounded-full bg-white transition-transform" />
+                {isUploading ? (
+                  <LoaderIcon size={24} className="animate-spin text-white/60" />
+                ) : (
+                  <>
+                    {/* Outer ring */}
+                    <div
+                      className="absolute inset-0 rounded-full border-[3px]"
+                      style={{ borderColor: "#c8956c" }}
+                    />
+                    {/* Inner circle */}
+                    <div className="h-[58px] w-[58px] rounded-full bg-white transition-transform" />
+                  </>
+                )}
               </motion.button>
 
               {/* Camera flip */}
               <button
+                onClick={switchCamera}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/50 transition-colors hover:text-white/80"
                 aria-label="Switch camera"
               >
@@ -170,7 +232,7 @@ export function CaptureFlow({
           </motion.div>
         )}
 
-        {state === "result" && (
+        {state === "result" && capturedImageUrl && (
           <motion.div
             key="result"
             initial={{ opacity: 0 }}
@@ -187,7 +249,7 @@ export function CaptureFlow({
             {/* Stamp card */}
             <div className="flex-1 flex items-center justify-center px-6">
               <StampCard
-                imageSrc={MOCK_PREVIEW}
+                imageSrc={capturedImageUrl}
                 serifFont={serifFont}
                 monoFont={monoFont}
               />
