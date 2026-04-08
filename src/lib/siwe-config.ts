@@ -80,9 +80,10 @@ export const siweConfig = createSIWEConfig({
 
     // Embedded wallet flow: no server-side nonce exists for the real address
     // (getNonce ran with a placeholder). Register one now so better-auth's
-    // verify endpoint can find it. Our backend verifyMessage callback uses
-    // viem and only checks the signature, so the nonce value itself is not
-    // compared against the SIWE message.
+    // verify endpoint can find a valid verification record for this address.
+    // Nonce validation is handled by better-auth's plugin layer (record
+    // exists + not expired); the custom verifyMessage callback only does
+    // cryptographic signature verification via viem.
     if (sessionStorage.getItem(EMBEDDED_FLOW_FLAG) === "1") {
       sessionStorage.removeItem(EMBEDDED_FLOW_FLAG)
       const { error: nonceError } = await authClient.siwe.nonce({

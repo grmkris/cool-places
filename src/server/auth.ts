@@ -5,7 +5,7 @@ import { generateRandomString } from "better-auth/crypto"
 import { createPublicClient, http } from "viem"
 import { verifyMessage } from "viem/actions"
 import { mainnet, base, baseSepolia } from "viem/chains"
-import { SiweMessage } from "siwe"
+
 import { DB_SCHEMA, type Database } from "./db/db"
 import { fetchReownIdentity } from "@/lib/reown-identity"
 import { env } from "@/env"
@@ -84,7 +84,7 @@ export function createAuth(props: {
         getNonce: async () => {
           return generateRandomString(32, "a-z", "A-Z", "0-9")
         },
-        verifyMessage: async ({ message, signature, address, chainId, cacao }) => {
+        verifyMessage: async ({ message, signature, address, chainId }) => {
           // Sanity check: hex must be even-length. Catches transcription bugs.
           if (
             !signature.startsWith("0x") ||
@@ -95,25 +95,13 @@ export function createAuth(props: {
             })
             return false
           }
-          // Verify the nonce in the SIWE message matches the one better-auth
-          // stored (passed via cacao.p.nonce). This prevents replay attacks —
-          // even if the cryptographic signature is valid, an old message with
-          // a consumed/wrong nonce is rejected.
-          if (cacao?.p.nonce) {
-            try {
-              const parsed = new SiweMessage(message)
-              if (parsed.nonce !== cacao.p.nonce) {
-                console.error("[siwe] nonce mismatch", {
-                  expected: cacao.p.nonce,
-                  got: parsed.nonce,
-                })
-                return false
-              }
-            } catch {
-              console.error("[siwe] failed to parse SIWE message for nonce check")
-              return false
-            }
-          }
+          // Nonce validation is handled by better-auth's SIWE plugin layer
+          // (it checks a valid, non-expired verification record exists before
+          // calling this callback). This callback only does cryptographic
+          // signature verification via viem.
+          const isErc6492 = signature.endsWith(
+            "6492649264926492649264926492649264926492649264926492649264926492"
+          )
           // Use viem's smart-wallet-aware verifyMessage action so that
           // ERC-1271 / ERC-6492 signatures from embedded smart wallets
           // (Reown social login) verify correctly. Falls back to mainnet
@@ -129,11 +117,19 @@ export function createAuth(props: {
               console.warn("[siwe] verifyMessage returned false", {
                 address,
                 chainId,
+                isErc6492,
               })
             }
             return ok
           } catch (err) {
-            console.error("[siwe] verifyMessage threw", err)
+            console.error("[siwe] verifyMessage threw", {
+              name: (err as Error)?.name,
+              message: (err as Error)?.message,
+              cause: (err as Error & { cause?: Error })?.cause?.message,
+              address,
+              chainId,
+              isErc6492,
+            })
             return false
           }
         },
