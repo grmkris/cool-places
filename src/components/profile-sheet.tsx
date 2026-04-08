@@ -89,7 +89,7 @@ export function ProfileSheet({
                   </span>
                   <button
                     onClick={handleCopyAddress}
-                    aria-label="Copy wallet address"
+                    aria-label="Copy address"
                     className="shrink-0 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:rounded-sm"
                   >
                     <CopyIcon size={10} />

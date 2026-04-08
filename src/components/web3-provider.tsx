@@ -18,7 +18,7 @@ if (projectId) {
     networks: [...networks],
     metadata: {
       name: "Cool Places",
-      description: "Pinned places I want to visit",
+      description: "Pin and collect the coolest places",
       url: "",
       icons: [],
     },

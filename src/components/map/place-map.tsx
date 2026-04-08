@@ -17,7 +17,7 @@ import {
 } from "@/hooks/use-place-filters"
 import { useSession } from "@/lib/auth-client"
 import { useAppKit } from "@reown/appkit/react"
-import { MapPinIcon, WalletIcon } from "lucide-react"
+import { ArrowRightIcon, CameraIcon, MapPinIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CreatePlaceModal } from "./create-place-modal"
 import { PlaceDetailPanel } from "./place-detail-panel"
@@ -139,18 +139,39 @@ export function PlaceMap() {
 
   if (!sessionPending && !isSignedIn) {
     return (
-      <div className="flex h-svh w-svw flex-col items-center justify-center gap-4 bg-background px-6">
-        <MapPinIcon size={32} className="text-muted-foreground" />
-        <div className="text-center">
-          <h1 className="text-lg font-semibold">Cool Places</h1>
-          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-            Connect your wallet to start saving cool places you want to visit.
-          </p>
+      <div className="relative h-svh w-svw overflow-hidden">
+        {/* Map background — shows the product immediately */}
+        <Map
+          center={[15, 38] as [number, number]}
+          zoom={4}
+          minZoom={3}
+          maxZoom={6}
+          className="h-full w-full"
+        />
+
+        {/* Floating CTA card */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
+          <div className="pointer-events-auto w-full max-w-sm rounded-2xl border border-border/30 bg-background/80 p-6 text-center shadow-2xl backdrop-blur-xl">
+            <MapPinIcon size={28} className="mx-auto mb-3 text-[#c8956c]" />
+            <h1 className="text-lg font-semibold tracking-tight">
+              Cool Places
+            </h1>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+              Pin the places you love. Collect memories.
+            </p>
+            <Button
+              onClick={() => openAppKit()}
+              className="mt-5 w-full gap-2"
+              style={{ backgroundColor: "#c8956c" }}
+            >
+              Get started
+              <ArrowRightIcon size={14} />
+            </Button>
+            <p className="mt-3 text-[10px] text-muted-foreground/60">
+              Takes 10 seconds. No app to download.
+            </p>
+          </div>
         </div>
-        <Button onClick={() => openAppKit()}>
-          <WalletIcon size={14} />
-          Connect wallet
-        </Button>
       </div>
     )
   }
@@ -246,8 +267,23 @@ export function PlaceMap() {
         />
       </Map>
 
-      {/* Add place FAB */}
-      <div className={cn("absolute z-controls bottom-44", fabRight)}>
+      {/* FAB stack */}
+      <div className={cn("absolute z-controls bottom-44 flex flex-col gap-2", fabRight)}>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={() => { window.location.href = "/capture" }}
+                aria-label="Capture a stamp"
+              />
+            }
+          >
+            <CameraIcon size={18} />
+          </TooltipTrigger>
+          <TooltipContent side="left">Capture a stamp</TooltipContent>
+        </Tooltip>
         <Tooltip>
           <TooltipTrigger
             render={

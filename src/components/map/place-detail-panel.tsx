@@ -36,7 +36,7 @@ import {
   PlusIcon,
   Share2Icon,
   Trash2Icon,
-  WalletIcon,
+  LogInIcon,
   XIcon,
 } from "lucide-react"
 import { EditPlaceModal } from "./edit-place-modal"
@@ -404,9 +404,9 @@ export function PlaceDetailPanel({
             onClick={() => openAppKit()}
             className="flex w-full items-center gap-2 border-t px-3 py-3 text-left transition-colors hover:bg-muted/50"
           >
-            <WalletIcon size={14} className="text-muted-foreground" />
+            <LogInIcon size={14} className="text-muted-foreground" />
             <p className="text-xs text-muted-foreground">
-              Connect wallet to track visits
+              Sign in to track your visits
             </p>
           </button>
         )}

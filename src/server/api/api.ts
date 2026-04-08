@@ -10,7 +10,7 @@ export const authedProcedure = publicProcedure.use(
   async ({ context, next }) => {
     if (!context.session) {
       throw new ORPCError("UNAUTHORIZED", {
-        message: "Connect wallet to continue",
+        message: "Sign in to continue",
       })
     }
     const userId = UserId.parse(context.session.user.id)

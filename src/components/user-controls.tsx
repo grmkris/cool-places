@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { ProfileSheet } from "@/components/profile-sheet"
 import { useSession } from "@/lib/auth-client"
-import { WalletIcon } from "lucide-react"
+import { LogInIcon } from "lucide-react"
 
 export function UserControls() {
   const { data: sessionData } = useSession()
@@ -37,8 +37,8 @@ export function UserControls() {
         </button>
       ) : (
         <Button variant="outline" size="sm" onClick={() => open()}>
-          <WalletIcon size={14} />
-          Connect
+          <LogInIcon size={14} />
+          Sign in
         </Button>
       )}
 
