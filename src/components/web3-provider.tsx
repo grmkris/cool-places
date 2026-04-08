@@ -3,8 +3,6 @@
 import { type ReactNode } from "react"
 import { createAppKit } from "@reown/appkit/react"
 import { WagmiProvider } from "wagmi"
-import { QueryClientProvider } from "@tanstack/react-query"
-import { getQueryClient } from "@/lib/query-client"
 import {
   wagmiAdapter,
   wagmiConfig,
@@ -32,11 +30,5 @@ if (projectId) {
 }
 
 export function Web3Provider({ children }: { children: ReactNode }) {
-  const queryClient = getQueryClient()
-
-  return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </WagmiProvider>
-  )
+  return <WagmiProvider config={wagmiConfig}>{children}</WagmiProvider>
 }

@@ -7,11 +7,6 @@ export const idTypesMapNameToPrefix = {
   // App entities
   coolPlace: "cpl",
   placeVisit: "vst",
-  // Import entities
-  importedItem: "imp",
-  extractionResult: "ext",
-  pinterestBoard: "pbd",
-  pinterestConnection: "pcn",
   // Auth entities (Better Auth)
   user: "usr",
   session: "ses",
@@ -71,19 +66,6 @@ export type CoolPlaceId = z.infer<typeof CoolPlaceId>
 
 export const PlaceVisitId = typeIdValidator("placeVisit")
 export type PlaceVisitId = z.infer<typeof PlaceVisitId>
-
-// Exported validators and types — Import entities
-export const ImportedItemId = typeIdValidator("importedItem")
-export type ImportedItemId = z.infer<typeof ImportedItemId>
-
-export const ExtractionResultId = typeIdValidator("extractionResult")
-export type ExtractionResultId = z.infer<typeof ExtractionResultId>
-
-export const PinterestBoardId = typeIdValidator("pinterestBoard")
-export type PinterestBoardId = z.infer<typeof PinterestBoardId>
-
-export const PinterestConnectionId = typeIdValidator("pinterestConnection")
-export type PinterestConnectionId = z.infer<typeof PinterestConnectionId>
 
 // Exported validators and types — Auth entities
 export const UserId = typeIdValidator("user")

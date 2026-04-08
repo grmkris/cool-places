@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import { useQueryState } from "nuqs"
 import { parseAsCoolPlaceId } from "@/lib/nuqs-parsers"
-import { Map, MapControls, useMap } from "@/components/ui/map"
+import { Map, MapControls, useMap, type MapRef } from "@/components/ui/map"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
@@ -28,7 +28,6 @@ import { UserControls } from "@/components/user-controls"
 
 const WORLD_CENTER: [number, number] = [0, 20]
 
-// Legitimate effect — syncs with external system (MapLibre map)
 function MapFlyTo({ target }: { target: [number, number] | null }) {
   const { map } = useMap()
   useEffect(() => {
@@ -47,9 +46,8 @@ export function PlaceMap() {
   const { data: sessionData, isPending: sessionPending } = useSession()
   const isSignedIn = !!sessionData?.session
   const { open: openAppKit } = useAppKit()
+  const mapRef = useRef<MapRef>(null)
 
-  // Filter state is URL-backed and does NOT depend on the loaded list — it's
-  // safe to read before usePlaces().
   const filterState = usePlaceFilterState()
   const {
     searchQuery,
@@ -63,20 +61,16 @@ export function PlaceMap() {
     clearFilters,
   } = filterState
 
-  // Push filter state through to the server so the SQL WHERE clause does the
-  // work. The client-side filter that follows is just a safety net.
   const listInput = useMemo(
     () => ({
       includePublic: showPublic,
       search: searchQuery || undefined,
-      tags: activeTags.size > 0 ? Array.from(activeTags) : undefined,
+      tags: activeTags.size > 0 ? Array.from(activeTags).sort() : undefined,
       visitedFilter,
     }),
     [showPublic, searchQuery, activeTags, visitedFilter]
   )
 
-  // Gate the fetch on auth — otherwise the oRPC call 401s and the error
-  // toast fires on every unauthenticated page load.
   const placesQuery = usePlaces(listInput, { enabled: isSignedIn })
   const places = placesQuery.data ?? []
   const isLoading = isSignedIn && placesQuery.isLoading
@@ -116,12 +110,15 @@ export function PlaceMap() {
     ? (places.find((p) => p.id === selectedPlaceId) ?? null)
     : null
 
-  function handleMapClick(lng: number, lat: number) {
-    if (!addMode) return
-    setClickedCoords([lng, lat])
-    setCreateModalOpen(true)
-    setAddMode(false)
-  }
+  const handleMapClick = useCallback(
+    (lng: number, lat: number) => {
+      if (!addMode) return
+      setClickedCoords([lng, lat])
+      setCreateModalOpen(true)
+      setAddMode(false)
+    },
+    [addMode]
+  )
 
   const handleSelectPlace = useCallback(
     (placeId: CoolPlaceId | null) => {
@@ -140,8 +137,6 @@ export function PlaceMap() {
 
   const fabRight = selectedPlace ? "right-2 sm:right-[21.5rem]" : "right-2"
 
-  // Unauth hero — shown before the session has resolved only when clearly
-  // not signed in. Keeps the 401 toast from firing on first paint.
   if (!sessionPending && !isSignedIn) {
     return (
       <div className="flex h-svh w-svw flex-col items-center justify-center gap-4 bg-background px-6">
@@ -196,7 +191,36 @@ export function PlaceMap() {
       <div className="absolute top-2 right-2 z-[1001]">
         <UserControls />
       </div>
+
+      {/* Sidebar + detail panel are SIBLINGS of Map so they paint before MapLibre boots */}
+      <PlaceSidebar
+        filteredPlaces={filteredPlaces}
+        selectedPlaceId={selectedPlaceId}
+        searchQuery={searchQuery}
+        allTags={allTags}
+        activeTags={activeTags}
+        visitedFilter={visitedFilter}
+        showPublic={showPublic}
+        collapsed={sidebarCollapsed}
+        onSearchChange={setSearchQuery}
+        onToggleTag={toggleTag}
+        onSetVisitedFilter={setVisitedFilter}
+        onToggleShowPublic={toggleShowPublic}
+        onClearFilters={clearFilters}
+        onSelectPlace={handleSelectPlace}
+        onCollapsedChange={setSidebarCollapsed}
+      />
+
+      {selectedPlace && (
+        <PlaceDetailPanel
+          key={selectedPlace.id}
+          place={selectedPlace}
+          onClose={handleCloseDetail}
+        />
+      )}
+
       <Map
+        ref={mapRef}
         center={WORLD_CENTER}
         zoom={3}
         minZoom={2}
@@ -214,41 +238,15 @@ export function PlaceMap() {
           onSelectPlace={handleSelectPlace}
         />
 
-        {selectedPlace && (
-          <PlaceDetailPanel
-            key={selectedPlace.id}
-            place={selectedPlace}
-            onClose={handleCloseDetail}
-          />
-        )}
-
         <MapControls
           position="bottom-right"
           showZoom
           showLocate
           showFullscreen
         />
-
-        <PlaceSidebar
-          filteredPlaces={filteredPlaces}
-          selectedPlaceId={selectedPlaceId}
-          searchQuery={searchQuery}
-          allTags={allTags}
-          activeTags={activeTags}
-          visitedFilter={visitedFilter}
-          showPublic={showPublic}
-          collapsed={sidebarCollapsed}
-          onSearchChange={setSearchQuery}
-          onToggleTag={toggleTag}
-          onSetVisitedFilter={setVisitedFilter}
-          onToggleShowPublic={toggleShowPublic}
-          onClearFilters={clearFilters}
-          onSelectPlace={handleSelectPlace}
-          onCollapsedChange={setSidebarCollapsed}
-        />
       </Map>
 
-      {/* Add place mode FAB — sibling overlay (mapcn has no control container primitive) */}
+      {/* Add place FAB */}
       <div className={cn("absolute z-[1001] bottom-44", fabRight)}>
         <Tooltip>
           <TooltipTrigger
@@ -272,7 +270,6 @@ export function PlaceMap() {
         </Tooltip>
       </div>
 
-      {/* Add mode mobile banner */}
       {addMode && (
         <div className="fixed inset-x-0 bottom-0 z-[1001] flex items-center justify-between bg-foreground px-4 py-3 text-background sm:hidden">
           <span className="text-xs font-medium">Tap map to drop pin</span>

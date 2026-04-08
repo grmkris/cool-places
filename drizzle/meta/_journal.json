@@ -8,13 +8,6 @@
       "when": 1775565351806,
       "tag": "0000_last_tusk",
       "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1775574945588,
-      "tag": "0001_breezy_ender_wiggin",
-      "breakpoints": true
     }
   ]
 }

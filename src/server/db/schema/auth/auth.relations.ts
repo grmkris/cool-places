@@ -1,27 +1,13 @@
 import { relations } from "drizzle-orm"
 import { user, session, account, walletAddress } from "./auth.db"
 import { coolPlace, placeVisit } from "../place/place.db"
-import {
-  importedItem,
-  pinterestBoard,
-  pinterestConnection,
-} from "../import/import.db"
 
-export const userRelations = relations(user, ({ many, one }) => ({
+export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session, { relationName: "userSessions" }),
   accounts: many(account, { relationName: "userAccounts" }),
   wallets: many(walletAddress, { relationName: "userWallets" }),
   places: many(coolPlace, { relationName: "userPlaces" }),
   visits: many(placeVisit, { relationName: "userVisits" }),
-  imports: many(importedItem, { relationName: "userImports" }),
-  pinterestBoards: many(pinterestBoard, {
-    relationName: "userPinterestBoards",
-  }),
-  pinterestConnection: one(pinterestConnection, {
-    fields: [user.id],
-    references: [pinterestConnection.userId],
-    relationName: "userPinterestConnection",
-  }),
 }))
 
 export const sessionRelations = relations(session, ({ one }) => ({

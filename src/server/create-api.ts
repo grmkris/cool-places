@@ -11,12 +11,6 @@ import { appRouter } from "./api/router"
 import { createAuth } from "./auth"
 import { createPlaceService } from "./services/place.service"
 import { createVisitService } from "./services/visit.service"
-import { createPinterestService } from "./services/pinterest.service"
-import { createTikTokService } from "./services/tiktok.service"
-import { createExtractionService } from "./services/extraction.service"
-import { createLlmProvider } from "./services/extraction/llm"
-import { createGeocoder } from "./services/extraction/geocoder"
-import { createImportService } from "./services/import.service"
 import { env } from "@/env"
 import { UserId } from "@/lib/typeid"
 import type { Database } from "./db/db"
@@ -27,19 +21,6 @@ export function createApi(props: { db: Database }) {
   // --- Services ---
   const placeService = createPlaceService({ db })
   const visitService = createVisitService({ db })
-  const pinterestService = createPinterestService({ db })
-  const tiktokService = createTikTokService({ db })
-  const llm = createLlmProvider({ modelId: env.EXTRACTION_MODEL })
-  const geocoder = createGeocoder({
-    provider: env.GEOCODER_PROVIDER,
-    token: env.MAPBOX_TOKEN ?? "",
-  })
-  const extractionService = createExtractionService({ db, llm, geocoder })
-  const importService = createImportService({
-    db,
-    placeService,
-    extractionService,
-  })
 
   // --- Auth ---
   const auth = createAuth({
@@ -125,10 +106,6 @@ export function createApi(props: { db: Database }) {
       auth,
       placeService,
       visitService,
-      pinterestService,
-      tiktokService,
-      extractionService,
-      importService,
       session,
     })
 

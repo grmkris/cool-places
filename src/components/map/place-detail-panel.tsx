@@ -1,7 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { MapControlContainer } from "@/components/ui/map"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -87,7 +97,6 @@ export function PlaceDetailPanel({
   }
 
   function handleDeletePlace() {
-    if (!confirm("Delete this place? This cannot be undone.")) return
     deletePlace.mutate(place.id, {
       onSuccess: () => onClose(),
     })
@@ -109,7 +118,7 @@ export function PlaceDetailPanel({
   })
 
   return (
-    <MapControlContainer className="absolute top-0 right-0 z-[1000] h-full w-[calc(100vw-3rem)] sm:w-80">
+    <div className="absolute top-0 right-0 z-[1000] h-full w-[calc(100vw-3rem)] sm:w-80">
       <div className="flex h-full max-h-full w-full flex-col border-l bg-background/90 backdrop-blur-md dark:border-white/[0.06]">
         {/* Header */}
         <div className="flex items-center gap-2 border-b px-3 py-2">
@@ -168,6 +177,7 @@ export function PlaceDetailPanel({
                     key={url}
                     src={url}
                     alt={place.title}
+                    loading="lazy"
                     className="h-32 w-auto shrink-0 rounded-md object-cover"
                   />
                 ))}
@@ -350,16 +360,38 @@ export function PlaceDetailPanel({
                       </>
                     )}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 w-full text-[11px] text-red-500 hover:text-red-600"
-                    onClick={handleDeletePlace}
-                    disabled={deletePlace.isPending}
-                  >
-                    <Trash2Icon size={11} />
-                    Delete place
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger
+                      render={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 w-full text-[11px] text-red-500 hover:text-red-600"
+                          disabled={deletePlace.isPending}
+                        />
+                      }
+                    >
+                      <Trash2Icon size={11} />
+                      Delete place
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this place?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete &ldquo;{place.title}&rdquo; and all its visits. This cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeletePlace}
+                          className="bg-red-500 text-white hover:bg-red-600"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </>
             )}
@@ -386,6 +418,6 @@ export function PlaceDetailPanel({
           place={place}
         />
       )}
-    </MapControlContainer>
+    </div>
   )
 }

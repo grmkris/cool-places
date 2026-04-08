@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth"
-import { siwe, genericOAuth } from "better-auth/plugins"
+import { siwe } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { generateRandomString } from "better-auth/crypto"
 import { createPublicClient, http } from "viem"
@@ -147,63 +147,6 @@ export function createAuth(props: {
             avatar: avatar ?? "",
           }
         },
-      }),
-      genericOAuth({
-        config: [
-          {
-            // Pinterest API v5 OAuth — used for linking only, never for sign-in.
-            // Users authenticate via SIWE first, then link Pinterest via the
-            // /api/auth/oauth2/link endpoint to grant access to their pins.
-            providerId: "pinterest",
-            clientId: env.PINTEREST_CLIENT_ID ?? "",
-            clientSecret: env.PINTEREST_CLIENT_SECRET ?? "",
-            authorizationUrl: "https://www.pinterest.com/oauth/",
-            tokenUrl: "https://api.pinterest.com/v5/oauth/token",
-            scopes: [
-              "user_accounts:read",
-              "boards:read",
-              "pins:read",
-              "boards:read_secret",
-              "pins:read_secret",
-            ],
-            pkce: true,
-            // Pinterest's token endpoint expects HTTP Basic auth with the
-            // client_id:client_secret pair (not form-encoded credentials).
-            authentication: "basic",
-            // Block standalone "Sign in with Pinterest" — this provider exists
-            // only to link to an already-authenticated SIWE user.
-            disableImplicitSignUp: true,
-            disableSignUp: true,
-            // Pinterest doesn't return an email at the user_accounts:read
-            // scope. Map only what we need; linking works via the active
-            // session's userId, not by email matching.
-            getUserInfo: async (tokens) => {
-              const res = await fetch(
-                "https://api.pinterest.com/v5/user_account",
-                {
-                  headers: {
-                    Authorization: `Bearer ${tokens.accessToken}`,
-                  },
-                }
-              )
-              if (!res.ok) {
-                throw new Error(
-                  `pinterest /v5/user_account ${res.status}: ${await res.text()}`
-                )
-              }
-              const body = (await res.json()) as {
-                username: string
-                id?: string
-              }
-              return {
-                id: body.id ?? body.username,
-                name: body.username,
-                email: null,
-                emailVerified: false,
-              }
-            },
-          },
-        ],
       }),
     ],
     advanced: {

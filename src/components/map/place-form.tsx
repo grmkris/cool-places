@@ -64,7 +64,7 @@ export function PlaceForm({
   )
 
   function addTag() {
-    const trimmed = tagInput.trim().toLowerCase()
+    const trimmed = tagInput.trim().toLowerCase().replace(/,/g, "")
     if (!trimmed) return
     if (tags.includes(trimmed)) {
       setTagInput("")
@@ -131,7 +131,7 @@ export function PlaceForm({
         <Input
           id="place-source"
           type="url"
-          placeholder="https://www.tiktok.com/..."
+          placeholder="https://example.com/..."
           value={sourceUrl}
           onChange={(e) => setSourceUrl(e.target.value)}
         />
@@ -187,6 +187,7 @@ export function PlaceForm({
               <img
                 src={url}
                 alt={`Upload ${i + 1}`}
+                loading="lazy"
                 className="size-16 rounded-md border object-cover"
               />
               <Button
