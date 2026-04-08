@@ -1,8 +1,10 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
+  ArrowLeftIcon,
   RefreshCwIcon,
   ZapIcon,
   SwitchCameraIcon,
@@ -29,6 +31,7 @@ export function CaptureFlow({
   serifFont: string
   monoFont: string
 }) {
+  const router = useRouter()
   const [state, setState] = useState<CaptureState>("idle")
   const [showFlash, setShowFlash] = useState(false)
 
@@ -37,7 +40,6 @@ export function CaptureFlow({
     setState("capturing")
     setShowFlash(true)
 
-    // Flash lasts 250ms, then transition to result
     setTimeout(() => setShowFlash(false), 250)
     setTimeout(() => setState("result"), 400)
   }, [state])
@@ -47,8 +49,13 @@ export function CaptureFlow({
   }, [])
 
   const handleUse = useCallback(() => {
-    toast.success("Stamp saved to your collection")
-  }, [])
+    // Navigate back to map with add-place sheet pre-opened and image pre-filled
+    router.push(`/?addPlace=true&image=${encodeURIComponent(MOCK_PREVIEW)}`)
+  }, [router])
+
+  const handleBack = useCallback(() => {
+    router.push("/")
+  }, [router])
 
   return (
     <div className="relative flex h-svh w-svw flex-col overflow-hidden bg-[#0a0a0a]">
@@ -82,6 +89,13 @@ export function CaptureFlow({
           >
             {/* Top bar */}
             <div className="flex items-center justify-between px-5 py-3">
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-1.5 rounded-full p-2 text-white/50 transition-colors hover:text-white/80"
+                aria-label="Back to map"
+              >
+                <ArrowLeftIcon size={16} />
+              </button>
               <span className={`${monoFont} text-[10px] tracking-widest text-white/40`}>
                 {new Date().toLocaleTimeString("en-US", {
                   hour: "2-digit",

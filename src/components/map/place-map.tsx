@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import { useQueryState } from "nuqs"
 import { parseAsCoolPlaceId } from "@/lib/nuqs-parsers"
 import { Map, MapControls, useMap, type MapRef } from "@/components/ui/map"
@@ -8,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import type { CoolPlaceId } from "@/lib/typeid"
 import { usePlaces } from "@/hooks/use-places"
 import {
@@ -17,14 +17,15 @@ import {
 } from "@/hooks/use-place-filters"
 import { useSession } from "@/lib/auth-client"
 import { useAppKit } from "@reown/appkit/react"
-import { ArrowRightIcon, CameraIcon, MapPinIcon } from "lucide-react"
+import { ArrowRightIcon, MapPinIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { CreatePlaceModal } from "./create-place-modal"
+import { AddPlaceSheet } from "./add-place-sheet"
 import { PlaceDetailPanel } from "./place-detail-panel"
 import { PlaceMarkers } from "./place-markers"
 import { MapClickHandler } from "./map-click-handler"
 import { PlaceSidebar } from "./place-sidebar"
 import { UserControls } from "@/components/user-controls"
+import { BottomNav } from "@/components/bottom-nav"
 
 const WORLD_CENTER: [number, number] = [0, 20]
 
@@ -86,11 +87,24 @@ export function PlaceMap() {
     parseAsCoolPlaceId
   )
 
-  const [addMode, setAddMode] = useState(false)
-  const [createModalOpen, setCreateModalOpen] = useState(false)
+  const searchParams = useSearchParams()
+  const addPlaceParam = searchParams.get("addPlace")
+  const prefilledImage = searchParams.get("image")
+
+  const [addSheetOpen, setAddSheetOpen] = useState(false)
+  const [pinMode, setPinMode] = useState(false)
   const [clickedCoords, setClickedCoords] = useState<[number, number] | null>(
     null
   )
+
+  // Auto-open add sheet when navigated from /capture with ?addPlace=true
+  const addSheetTriggered = useRef(false)
+  useEffect(() => {
+    if (addPlaceParam === "true" && !addSheetTriggered.current && isSignedIn) {
+      addSheetTriggered.current = true
+      setAddSheetOpen(true)
+    }
+  }, [addPlaceParam, isSignedIn])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [flyToTarget, setFlyToTarget] = useState<[number, number] | null>(null)
 
@@ -112,12 +126,12 @@ export function PlaceMap() {
 
   const handleMapClick = useCallback(
     (lng: number, lat: number) => {
-      if (!addMode) return
+      if (!pinMode) return
       setClickedCoords([lng, lat])
-      setCreateModalOpen(true)
-      setAddMode(false)
+      setPinMode(false)
+      setAddSheetOpen(true)
     },
-    [addMode]
+    [pinMode]
   )
 
   const handleSelectPlace = useCallback(
@@ -135,12 +149,27 @@ export function PlaceMap() {
     setSelectedPlaceId(null)
   }, [setSelectedPlaceId])
 
-  const fabRight = selectedPlace ? "right-2 sm:right-[21.5rem]" : "right-2"
+  const handleOpenAddSheet = useCallback(() => {
+    setClickedCoords(null)
+    setAddSheetOpen(true)
+  }, [])
 
+  const handleRequestPinMode = useCallback(() => {
+    setPinMode(true)
+  }, [])
+
+  const handleAddSheetClose = useCallback((open: boolean) => {
+    setAddSheetOpen(open)
+    if (!open) {
+      setPinMode(false)
+      setClickedCoords(null)
+    }
+  }, [])
+
+  // ── Unauth landing ──
   if (!sessionPending && !isSignedIn) {
     return (
       <div className="relative h-svh w-svw overflow-hidden">
-        {/* Map background — shows the product immediately */}
         <Map
           center={[15, 38] as [number, number]}
           zoom={4}
@@ -149,7 +178,6 @@ export function PlaceMap() {
           className="h-full w-full"
         />
 
-        {/* Floating CTA card */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
           <div className="pointer-events-auto w-full max-w-sm rounded-2xl border border-border/30 bg-background/80 p-6 text-center shadow-2xl backdrop-blur-xl">
             <MapPinIcon size={28} className="mx-auto mb-3 text-[#c8956c]" />
@@ -176,6 +204,7 @@ export function PlaceMap() {
     )
   }
 
+  // ── Loading ──
   if (isLoading) {
     return (
       <div className="flex h-svh w-svw bg-background">
@@ -207,13 +236,13 @@ export function PlaceMap() {
     )
   }
 
+  // ── Authenticated map ──
   return (
     <div className="relative flex h-svh w-svw flex-col">
       <div className="absolute top-2 right-2 z-controls">
         <UserControls />
       </div>
 
-      {/* Sidebar + detail panel are SIBLINGS of Map so they paint before MapLibre boots */}
       <PlaceSidebar
         filteredPlaces={filteredPlaces}
         selectedPlaceId={selectedPlaceId}
@@ -248,10 +277,10 @@ export function PlaceMap() {
         maxZoom={18}
         className={cn(
           "h-full w-full flex-1",
-          addMode && "cursor-crosshair"
+          pinMode && "cursor-crosshair"
         )}
       >
-        <MapClickHandler onClick={handleMapClick} enabled={addMode} />
+        <MapClickHandler onClick={handleMapClick} enabled={pinMode} />
         <MapFlyTo target={flyToTarget} />
 
         <PlaceMarkers
@@ -267,52 +296,14 @@ export function PlaceMap() {
         />
       </Map>
 
-      {/* FAB stack */}
-      <div className={cn("absolute z-controls bottom-44 flex flex-col gap-2", fabRight)}>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                size="icon"
-                variant="outline"
-                onClick={() => { window.location.href = "/capture" }}
-                aria-label="Capture a stamp"
-              />
-            }
-          >
-            <CameraIcon size={18} />
-          </TooltipTrigger>
-          <TooltipContent side="left">Capture a stamp</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                size="icon"
-                variant={addMode ? "default" : "outline"}
-                onClick={() => setAddMode((p) => !p)}
-                aria-label={addMode ? "Cancel add" : "Add place"}
-                className={cn(
-                  addMode && "ring-2 ring-primary/50 animate-pulse"
-                )}
-              />
-            }
-          >
-            <MapPinIcon size={18} />
-          </TooltipTrigger>
-          <TooltipContent side="left">
-            {addMode ? "Cancel add" : "Add place"}
-          </TooltipContent>
-        </Tooltip>
-      </div>
-
-      {addMode && (
-        <div className="fixed inset-x-0 bottom-0 z-controls flex items-center justify-between bg-foreground px-4 py-3 text-background sm:hidden">
-          <span className="text-xs font-medium">Tap map to drop pin</span>
+      {/* Pin mode banner (mobile) */}
+      {pinMode && (
+        <div className="fixed inset-x-0 bottom-14 z-controls flex items-center justify-between bg-foreground px-4 py-3 text-background sm:bottom-0 sm:hidden">
+          <span className="text-xs font-medium">Tap the map to drop a pin</span>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setAddMode(false)}
+            onClick={() => setPinMode(false)}
             className="text-background hover:text-background/80"
           >
             Cancel
@@ -320,10 +311,16 @@ export function PlaceMap() {
         </div>
       )}
 
-      <CreatePlaceModal
-        open={createModalOpen}
-        onOpenChange={setCreateModalOpen}
+      {/* Bottom navigation (mobile only) */}
+      <BottomNav onAddClick={handleOpenAddSheet} />
+
+      {/* Unified add-place sheet */}
+      <AddPlaceSheet
+        open={addSheetOpen}
+        onOpenChange={handleAddSheetClose}
         coordinates={clickedCoords}
+        onRequestPinMode={handleRequestPinMode}
+        prefilledImage={prefilledImage}
       />
     </div>
   )

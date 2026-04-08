@@ -350,12 +350,15 @@ export function PlaceSidebar({
               {/* Place list */}
               <ScrollArea className="flex-1">
                 {filteredPlaces.length === 0 ? (
-                  <div className="px-4 py-6 text-center">
-                    <p className="text-[11px] text-muted-foreground">
+                  <div className="px-4 py-8 text-center">
+                    <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full bg-muted">
+                      <MapPinIcon size={18} className="text-muted-foreground" />
+                    </div>
+                    <p className="text-[12px] font-medium">
                       No places yet
                     </p>
-                    <p className="mt-1 text-[10px] text-muted-foreground/60">
-                      Click the pin icon and tap the map to add one
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Tap the + button to capture a moment or pin a spot on the map
                     </p>
                   </div>
                 ) : (
